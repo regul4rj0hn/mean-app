@@ -1,0 +1,22 @@
+{
+  "name": "mean-app",
+  "version": "1.0.0",
+  "description": "MEAN application example to practice Udemy course.",
+  "main": "app.js",
+  "repository": {
+    "type": "git"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Mark",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2"
+  },
+  "devDependencies": {
+    "mocha": "^5.0.0"
+  }
+}
