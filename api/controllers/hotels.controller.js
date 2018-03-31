@@ -6,9 +6,38 @@
 var mongoose = require('mongoose');
 var Hotel = mongoose.model('Hotel');
 
+var runGeoQuery = function(req, res) {
+    var lng = parseFloat(req.query.lng);
+    var lat = parseFloat(req.query.lat);
+
+    Hotel
+        .aggregate([
+            {
+                $geoNear: {
+                    near: [lng,lat],
+                    distanceField: "dist.calculated",
+                    maxDistance: 2000,
+                    spherical: true,
+                    num: 5
+                }
+            }
+        ],
+        function(err, results){
+            console.log('Geo Results: ', results);
+            res
+                .status(200)
+                .json(results)
+        });
+};
+
 module.exports.hotelsGetAll = function(req, res) {
     var offset = 0;
     var count = 5;
+
+    if (req.query && req.query.lat && req.query.lng) {
+        runGeoQuery(req,res);
+        return;
+    }
 
     if (req.query && req.query.offset) {
         offset = parseInt(req.query.offset, 10);
