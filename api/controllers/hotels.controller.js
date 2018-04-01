@@ -6,6 +6,14 @@
 var mongoose = require('mongoose');
 var Hotel = mongoose.model('Hotel');
 
+var _splitArray = function(input) {
+    if (input && input.length > 0) {
+        return input.split(";");
+    }
+    else 
+        return [];
+};
+
 var runGeoQuery = function(req, res) {
     var lng = parseFloat(req.query.lng);
     var lat = parseFloat(req.query.lat);
@@ -122,25 +130,92 @@ module.exports.hotelsGetOne = function(req, res) {
 };
 
 module.exports.hotelsAddOne = function(req, res) {
-    var db = dbconn.get();
-    var collection = db.collection('hotels');
-    var newHotel = req.body;
+    Hotel
+        .create({
+            name: req.body.name,
+            description: req.body.description,
+            stars: parseInt(req.body.stars, 10),
+            services: _splitArray(req.body.services),
+            photos: _splitArray(req.body.photos),
+            currency: req.body.currency,
+            location: {
+                address: req.body.address,
+                coordinates: [
+                    parseFloat(req.body.lng),
+                    parseFloat(req.body.lat)
+                ]
+            }
+        }, function(err, hotel) {
+            if (err) {
+                console.log("Error creating hotel.");
+                res
+                .status(400)
+                .json(err)
+            }
+            else {
+                console.log("Hotel created: ", hotel)
+                res
+                  .status(201)
+                  .json(hotel);                
+            }
+        });
+};
 
-    console.log("POST recieved for new Hotel, processing.");
 
-    collection.insertOne(newHotel, function(err, response) {
-        if (newHotel && newHotel.name && newHotel.stars) {
-            newHotel.stars = parseInt(newHotel.stars, 10);
-            console.log(response.ops);
-            res
-              .status(201)
-              .json(response.ops);
-        }
-        else {
-            console.log("Data missing on POST body.");
-            res
-              .status(400)
-              .json({ message: "Required data missing on form body." });
-        }
-    });
+module.exports.hotelsUpdateOne = function(req, res) {
+    var hotelId = req.params.hotelId;
+    console.log("PUT one hotel with ID", hotelId);
+
+    Hotel
+        .findById(hotelId)
+        .select("-reviews -rooms")
+        .exec(function(err, doc) {
+            var response = {
+                status: 200,
+                message: doc
+            }
+            if (err) {
+                console.log("Error finding hotels");
+                response.status = 500;
+                response.message = err;
+            }
+            else if (!doc) {
+                response.status = 404;
+                response.message = { "message": "Hotel ID not found" };
+            }
+
+            if (response.status !== 200) {
+                res
+                .status(response.status)
+                .json(response.message);
+            }
+            else {
+                doc.name = req.body.name;
+                doc.description = req.body.description;
+                doc.stars = parseInt(req.body.stars, 10);
+                doc.services = _splitArray(req.body.services);
+                doc.photos = _splitArray(req.body.photos);
+                doc.currency = req.body.currency;
+                doc.location = {
+                    address: req.body.address,
+                    coordinates: [
+                        parseFloat(req.body.lng),
+                        parseFloat(req.body.lat)
+                    ]
+                };
+
+                doc.save(function(err, hotelUpdated) {
+                    if (err) {
+                        res
+                          .status(500)
+                          .json(err);
+                    }
+                    else {
+                        res
+                          .status(204)
+                          .json();
+                    }
+                });
+            }
+        });
 };
